@@ -75,7 +75,6 @@ export default function Home() {
   };
 
   const runSearch = async () => {
-    if (!apiKey) { alert('Voer eerst een Anthropic API-sleutel in (linker kolom onderaan).'); return; }
     if (mode === 'guided' && !sectors.length) { alert('Selecteer minimaal één sector.'); return; }
     if (mode === 'free' && !freeText.trim()) { alert('Vul in wat je zoekt.'); return; }
 
@@ -109,8 +108,8 @@ Return ONLY a valid JSON array. No markdown, no explanation. Find 8-14 real lead
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           apiKey,
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4000,
           tools: [{ type: 'web_search_20250305', name: 'web_search' }],
           system,
           messages: [{ role: 'user', content: prompt }]
@@ -118,6 +117,13 @@ Return ONLY a valid JSON array. No markdown, no explanation. Find 8-14 real lead
       });
 
       const data = await res.json();
+      if (!res.ok || data.error || data.type === 'error') {
+        const msg = data.error?.message || data.error || JSON.stringify(data).slice(0, 300);
+        setStatusType('error');
+        setStatus(`API-fout: ${msg}`);
+        setLoading(false);
+        return;
+      }
       setStatus('Resultaten verwerken…');
 
       const text = (data.content || []).map(b => b.type === 'text' ? b.text : '').join('');
@@ -420,9 +426,9 @@ Return ONLY a valid JSON array. No markdown, no explanation. Find 8-14 real lead
 
           <div className="api-wrap">
             <span className="s-lbl">Anthropic API key</span>
-            <input className="api-input" type="password" value={apiKey} onChange={e=>persistKey(e.target.value)} placeholder="sk-ant-..." autoComplete="off" />
+            <input className="api-input" type="password" value={apiKey} onChange={e=>persistKey(e.target.value)} placeholder="sk-ant-... (optioneel)" autoComplete="off" />
             <div className="api-hint">
-              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a> — wordt lokaal opgeslagen.
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a> — laat leeg om de Vercel-sleutel te gebruiken.
             </div>
           </div>
         </aside>
